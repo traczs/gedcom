@@ -1,0 +1,35 @@
+***********************************************
+Samuel Tracz
+0927451
+CIS 2750 Assignment 1
+January 29, 2018
+**********************************************
+
+*************************
+Compilation
+*************************
+make all
+
+*******************************
+running the program
+*****************************
+./a.out filename ? 
+I dont know what your main is.
+
+***************************
+Notes
+***************************
+My dignity is already gone. Please don't take marks off for not enough comments or poor code structure.
+Many tears, sleepless nights, and days of anxiety have been put into this hot steaming piece of trash.
+Please comment what bar you recommend to drink away this pain.
+
+CODE KNOWN ISSUES:
+-Families gets pointed to the last family created and overwrites all the previous ones to the last one.
+ I had the same problem with individuals.
+ To fix this I should malloc in a smaller scope, but that seg faults so I cried instead.
+- Individuals probably don't have a family list 
+- Header might not have the submitter pointer
+- I assume individuals are before families in the gedcom and havent tested the other way but I'm sure that would break my program.
+- Printing out the gedcom: I printed out header, submitter, list of individuals and "list of families"(the same last familiy over and over).
+- the functions that return char* need to be free'd in main so I don't know what to do about that
+- getDescendants will maybe print out the kids but nothing more.
