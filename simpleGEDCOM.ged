@@ -20,6 +20,9 @@
 1 NAME James /Smith/
 1 SEX M
 1 FAMC @F1@
+1 DEAT
+2 DATE 1597 DEC 3
+2 SUS 1234
 0 @F1@ FAM
 1 HUSB @I1@
 1 WIFE @I2@
@@ -27,4 +30,6 @@
 1 CHIL @I3@
 0 @U1@ SUBM
 1 NAME Submitter
+1 WOO sus
+1 YEE SIW
 0 TRLR

@@ -8,6 +8,11 @@ int main(int argc, char *argv[]) {
 
   GEDCOMobject* obj;
   GEDCOMerror error = createGEDCOM(argv[1], &obj);
-  printf("ERROR:\n %d -- %d\n",error.line,error.type);
+  printf("%s\n",printError(error));
+  char * temp = printGEDCOM(obj);
+  printf("     GEDCOM:\n%s\n", temp);
+  free(temp);
+
+  deleteGEDCOM(obj);
   return 0;
 }
