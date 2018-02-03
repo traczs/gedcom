@@ -1041,8 +1041,8 @@ Individual* findPerson(const GEDCOMobject* familyRecord, bool (*compare)(const v
 List getDescendants(const GEDCOMobject* familyRecord, const Individual* person)
 {
   List descendants = initializeList(&printIndividual,&deleteIndividual,&compareIndividuals);
-  ListIterator iter = createIterator(person->children);
-  void* elem;
+  ListIterator iter = createIterator(familyRecord->families);
+  Family* elem;
 
   if(person == NULL)
   {
@@ -1052,7 +1052,18 @@ List getDescendants(const GEDCOMobject* familyRecord, const Individual* person)
 
   while( (elem = nextElement(&iter)) != NULL)
   {
-    insertBack(&descendants,elem);
+    if((strcmp(person->givenName,elem->husband->givenName)==0) || (strcmp(person->givenName,elem->wife->givenName)==0))
+    {
+      if((strcmp(person->givenName,elem->husband->surname)==0) || (strcmp(person->givenName,elem->wife->surname)==0))
+      {
+        ListIterator child = createIterator(elem->children);
+        Individual* kid;
+        while( (kid = nextElement(&child)) != NULL)
+        {
+          insertBack(&descendants,kid);
+        }
+      }
+    }
   }
   return descendants;
 }
