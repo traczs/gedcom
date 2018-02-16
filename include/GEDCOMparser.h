@@ -17,7 +17,7 @@
 typedef enum cSet {ANSEL, UTF8, UNICODE, ASCII} CharSet;
 
 //error code enum
-typedef enum eCode {OK, INV_FILE, INV_GEDCOM, INV_HEADER, INV_RECORD, OTHER} ErrorCode;
+typedef enum eCode {OK, INV_FILE, INV_GEDCOM, INV_HEADER, INV_RECORD, OTHER_ERROR, WRITE_ERROR} ErrorCode;
 
 //Represents a generic event, e.g. individual event, family event, etc.
 typedef struct {
@@ -112,6 +112,8 @@ typedef struct {
 
     //List of other fields in the family record.  All objects in the list will be of type Field.  It may be empty.
     List        otherFields;
+
+    List        events;
 
 } Family;
 

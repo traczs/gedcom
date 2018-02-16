@@ -111,15 +111,15 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
   bool trlrCheck = false;
   char* tempStr;
 
-  while(fgets(string,300,file)!=NULL)
+  while(fgets(string,500,file)!=NULL)
   {
-    if(strlen(string)> 256)
+    if(strlen(string)> 255)
     {
       free(*obj);
       fclose(file);
       *obj = NULL;
-      error.type = INV_GEDCOM;
-      error.line = -1;
+      error.type = INV_RECORD;
+      error.line = listCount+1;
       return error;
     }
     if(strcmp(string,"\n")==0){
@@ -144,24 +144,40 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
     }
     listCount++;
   }
-/*  for(int i =0; i<listCount;i++)
+
+  int temp = 0;
+  for(int i =1; i<listCount;i++)
   {
-    int j = 0;
-    while (strcmp(wholeList[i][j],"\0" )!=0)
+    int diff = (atoi(wholeList[i][0]) - temp) ;
+    if (diff>1 || diff<-3)
     {
-      printf("MYLIST[%d][%d]= %s\n",i,j,wholeList[i][j]);
-      j++;
+      free(*obj);
+      fclose(file);
+      *obj = NULL;
+      error.type = INV_RECORD;
+      error.line = i+1;
+      return error;
     }
-  }*/
+    temp = atoi(wholeList[i][0]);
+  }
 
 //checking if head and trlr exist
-  if(wholeList[0][0]!=NULL && (strcmp(wholeList[0][0],"0")==0))
+  if(wholeList[0][0]!=NULL /*&& (strcmp(wholeList[0][0],"0")==0)*/)
   {
       if(wholeList[0][1] != NULL)
       {
         if(strcmp(wholeList[0][1],"HEAD") == 0)
         {
           headCheck = true;
+          if(strcmp(wholeList[0][0],"0")!=0)
+          {
+            free(*obj);
+            fclose(file);
+            *obj = NULL;
+            error.type = INV_HEADER;
+            error.line = -1;
+            return error;
+          }
         }
       }
   }
@@ -175,6 +191,8 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
         }
       }
   }
+
+
   if(headCheck==false || trlrCheck==false)
   {
     free(*obj);
@@ -206,15 +224,25 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
         charChk = true;
 
   }
+  if(sourChk == false||versChk == false||submChk == false||gedcChk == false||formChk == false||charChk == false)
+  {
+    free(*obj);
+    fclose(file);
+    *obj = NULL;
+    error.type = INV_HEADER;
+    error.line = -1;
+    return error;
+  }
   //header parsing into data structure
+  bool submitterCheck = false;
   if(sourChk ==true && versChk ==true && submChk== true && gedcChk==true && formChk==true && charChk==true)
   {
     (*obj)->header =  malloc(sizeof(Header));
-
-
     int j=0;
     int i = 1;
-    (*obj)->submitter = malloc(sizeof(Submitter)+20* sizeof(char));
+    (*obj)->submitter = malloc(sizeof(Submitter)/*+20* sizeof(char)*/);
+    (*obj)->header->submitter = malloc(sizeof(Submitter));
+    (*obj)->header->submitter->otherFields = initializeList(&printField,&deleteField,&compareFields);
     (*obj)->submitter->otherFields = initializeList(&printField,&deleteField,&compareFields);
     (*obj)->header->otherFields = initializeList(&printField,&deleteField,&compareFields);
 
@@ -222,16 +250,25 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
     {
       if(strcmp(wholeList[i][j+1],"SOUR")==0)
       {
-        if(wholeList[i][j+2] != NULL)
+        if(wholeList[i][j+2] != NULL && strcmp(wholeList[i][j+2],"")!=0)
           strcpy((*obj)->header->source, wholeList[i][j+2]);
+        while(strcmp(wholeList[i][0],"1" )!=0 && wholeList[i][0] !=NULL)
+        {
+          i++;
+        }
       }
-      else if((strcmp(wholeList[i][j+1],"GEDC")==0) && (strcmp(wholeList[i+1][j+1],"VERS" )==0))
+      else if((strcmp(wholeList[i][j+1],"GEDC")==0) /*&& (strcmp(wholeList[i+1][j+1],"VERS" )==0)*/)
       {
-          (*obj)->header->gedcVersion = atof(wholeList[i+1][j+2]);
-      }
-      else if((strcmp(wholeList[i][j+1],"GEDC")==0) && (strcmp(wholeList[i+2][j+1],"VERS" )==0))
-      {
-          (*obj)->header ->gedcVersion = atof(wholeList[i+2][j+2]);
+        i++;
+        while(strcmp(wholeList[i][0],"1" )!=0 && wholeList[i][0] !=NULL)
+        {
+          if(strcmp(wholeList[i][1],"VERS" )==0)
+          {
+            (*obj)->header->gedcVersion = atof(wholeList[i][j+2]);
+          }
+          i++;
+        }
+        i--;
       }
       else if((strcmp(wholeList[i][j+1],"CHAR")==0))
       {
@@ -261,34 +298,47 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
         if(wholeList[i][j+2] != NULL)
         {
 
+
           strcpy((*obj)->submitter->address ,wholeList[i][j+2]);
+          strcpy((*obj)->header->submitter->address ,wholeList[i][j+2]);
 
           for(int i =1; i<listCount;i++)
           {
             if((strcmp(wholeList[i][1],(*obj)->submitter->address)==0))
             {
               i++;
+              submitterCheck = true;
               while ((strcmp(wholeList[i][0],"0" )!=0) && (wholeList[i][0]!=NULL))
               {
                 if(strcmp(wholeList[i][1],"NAME")==0)
                 {
                   strcpy((*obj)->submitter->submitterName,wholeList[i][2]);
+                  strcpy((*obj)->header->submitter->submitterName,wholeList[i][2]);
                 }
                 else
                 {
                   Field* field = malloc(sizeof(Field));
                   field->tag = malloc(sizeof(char) * 10);
                   field->value = malloc(sizeof(char) * 100);
-                  if(wholeList[i][1] != NULL)
+                  if((wholeList[i][1] != NULL)&& (strcmp(wholeList[i][1],"" )!=0))
                     strcpy(field->tag, wholeList[i][1]);
-                  if(wholeList[i][2] != NULL)
-                    strcpy(field->value, wholeList[i][2]);
-
+                    if((wholeList[i][2] != NULL)&& (strcmp(wholeList[i][2],"" )!=0))
+                    {
+                      strcpy(field->value, wholeList[i][2]);
+                      int w = 3;
+                      while ((wholeList[i][w] != NULL)&& (strcmp(wholeList[i][w],"" )!=0)) {
+                        strcat(field->value, " ");
+                        strcat(field->value, wholeList[i][w]);
+                        w++;
+                      }
+                    }
                   insertBack(&((*obj)->submitter->otherFields),field);
-                  (*obj)->header->submitter = (*obj)->submitter;
+                  insertBack(&((*obj)->header->submitter->otherFields),field);
+
                   //Field* temp = (Field*)(*obj)->header->submitter->otherFields.tail->data;
                   //printf("woo sus:%s \n",temp->tag);
                 }
+                //(*obj)->header->submitter = (*obj)->submitter;
                 i++;
               }
             }
@@ -302,10 +352,18 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
           Field* field = malloc(sizeof(Field));
           field->tag = malloc(sizeof(char) * 10);
           field->value = malloc(sizeof(char) * 100);
-          if(wholeList[i][1] != NULL)
+          if((wholeList[i][1] != NULL)&& (strcmp(wholeList[i][1],"" )!=0))
             strcpy(field->tag, wholeList[i][1]);
-          if(wholeList[i][2] != NULL)
+          if((wholeList[i][2] != NULL)&& (strcmp(wholeList[i][2],"" )!=0))
+          {
             strcpy(field->value, wholeList[i][2]);
+            int w = 3;
+            while ((wholeList[i][w] != NULL)&& (strcmp(wholeList[i][w],"" )!=0)) {
+              strcat(field->value, " ");
+              strcat(field->value, wholeList[i][w]);
+              w++;
+            }
+          }
 
           insertBack(&((*obj)->header->otherFields),field);
 
@@ -317,6 +375,15 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
     }
   }
 
+  if(submitterCheck == false)
+  {
+    free(*obj);
+    fclose(file);
+    *obj = NULL;
+    error.type = INV_GEDCOM;
+    error.line = -1;
+    return error;
+  }
 //mallocing and initializing things
 
 
@@ -347,7 +414,7 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
         if((strcmp(wholeList[i][1],"NAME" )==0))
         {
           int j =2;
-          char name[75] = " ";
+          char name[75] = "";
           while(wholeList[i][j] !=NULL && strcmp(wholeList[i][j],"\0" )!=0)
           {
             strcat(name,wholeList[i][j]);
@@ -452,6 +519,14 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
           i--;
           insertBack(&(indi->events),event);
         }
+        else if((strcmp(wholeList[i][0],"1" )==0) && (strcmp(wholeList[i][1],"FAMS" )==0))
+        {
+
+        }
+        else if((strcmp(wholeList[i][0],"1" )==0) && (strcmp(wholeList[i][1],"FAMC" )==0))
+        {
+
+        }
         else
         {
           Field* field = malloc(sizeof(Field));
@@ -484,9 +559,10 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
       fam->otherFields = initializeList(&printField,&deleteField,&compareFields);
       i++;
       Point* temp = malloc(sizeof(Point));
+      temp = NULL;
       while ((strcmp(wholeList[i][0],"0" )!=0) && (wholeList[i][0]!=NULL) && (strcmp(wholeList[i][0],"\0" )!=0))
       {
-        temp = NULL;
+
         if(strcmp(wholeList[i][1],"HUSB" )==0)
         {
           ListIterator iter = createIterator(points);
@@ -551,12 +627,13 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
           insertBack(&(fam->otherFields),field);
         }
         i++;
+        if(temp != NULL){
+          Individual * ind = temp->pointer;
+          insertBack(&(ind->families),fam);
+        }
       }
 
-      if(temp != NULL){
-        Individual * ind = temp->pointer;
-        insertBack(&(ind->families),fam);
-      }
+
       insertBack(&((*obj)->families),fam);
       i--;
     }
@@ -847,7 +924,18 @@ char * printGEDCOM(const GEDCOMobject* obj)
   strcat(longestString,convertedString);
   strcat(longestString,"\n");
   strcat(longestString,"SUBMITTER:\n");
-  strcat(longestString,obj->submitter->submitterName);
+  strcat(longestString,obj->header->submitter->submitterName);
+  strcat(longestString,"__");
+  ListIterator fuck = createIterator(obj->header->otherFields);
+  Field* fucktemp = NULL;
+  while( (fucktemp = nextElement(&fuck)) != NULL)
+  {
+    strcat(longestString,"\n");
+    strcat(longestString,fucktemp->tag);
+    strcat(longestString,"__");
+    strcat(longestString,fucktemp->value);
+  }
+
 
   ListIterator iter = createIterator(obj->individuals);
   Individual* temp = NULL;
@@ -863,12 +951,32 @@ char * printGEDCOM(const GEDCOMobject* obj)
     Event* tempEvent = NULL;
     while( (tempEvent = nextElement(&eventIter)) != NULL)
     {
-      strcat(longestString,"\n        EVENT:");
+      strcat(longestString,"\n  EVENT:");
       strcat(longestString,tempEvent->type);
       strcat(longestString,"__");
       strcat(longestString,tempEvent->date);
       strcat(longestString,"__");
       strcat(longestString,tempEvent->place);
+    }
+
+    ListIterator familiesIter = createIterator(temp->families);
+    Family* tempFamily = NULL;
+    while( (tempFamily = nextElement(&familiesIter)) != NULL)
+    {
+      strcat(longestString,"\n  IND FAM:");
+      strcat(longestString,tempFamily->wife->givenName);
+      strcat(longestString,"__");
+      strcat(longestString,tempFamily->husband->givenName);
+    }
+
+    ListIterator other1 = createIterator(temp->otherFields);
+    Field* othtemp = NULL;
+    while( (othtemp = nextElement(&other1)) != NULL)
+    {
+      strcat(longestString,"\n");
+      strcat(longestString,othtemp->tag);
+      strcat(longestString,"__");
+      strcat(longestString,othtemp->value);
     }
   }
   strcat(longestString,"\n");
@@ -880,14 +988,14 @@ char * printGEDCOM(const GEDCOMobject* obj)
   while( (tempFam = nextElement(&famIter)) != NULL)
   {
     strcat(longestString," FAMILY:\n");
-    strcat(longestString,"    Husband: ");
+    strcat(longestString,"    Husband:");
     if(tempFam->husband != NULL)
       strcat(longestString,tempFam->husband->givenName);
     strcat(longestString,"__");
     if(tempFam->husband != NULL)
       strcat(longestString,tempFam->husband->surname);
     strcat(longestString,"\n");
-    strcat(longestString,"    Wife: ");
+    strcat(longestString,"    Wife:");
     if(tempFam->wife != NULL)
       strcat(longestString,tempFam->wife->givenName);
     strcat(longestString,"__");
@@ -905,6 +1013,15 @@ char * printGEDCOM(const GEDCOMobject* obj)
       strcat(longestString,"__");
       strcat(longestString,tempChild->surname);
       strcat(longestString,"\n");
+    }
+    ListIterator other11 = createIterator(tempFam->otherFields);
+    Field* othrtemp = NULL;
+    while( (othrtemp = nextElement(&other11)) != NULL)
+    {
+      strcat(longestString,"OTHERFAM\n");
+      strcat(longestString,othrtemp->tag);
+      strcat(longestString,"__");
+      strcat(longestString,othrtemp->value);
     }
   }
   return longestString;
@@ -1021,19 +1138,20 @@ char * printError(GEDCOMerror err)
 
 Individual* findPerson(const GEDCOMobject* familyRecord, bool (*compare)(const void* first, const void* second), const void* person)
 {
+  if(familyRecord == NULL)
+  {
+    return NULL;
+  }
   ListIterator iter = createIterator(familyRecord->individuals);
 	void* elem;
   //customCompare = compareElement;
 	bool comp;
 
-  if((elem = nextElement(&iter)) == NULL)
-    return NULL;
-
-	do{
+	while((elem = nextElement(&iter)) != NULL){
 		comp = compare(person,elem);
 		if(comp==true)
 			return elem;
-	}while( (elem = nextElement(&iter)) != NULL);
+	}
 
 	return NULL;
 }
@@ -1041,21 +1159,22 @@ Individual* findPerson(const GEDCOMobject* familyRecord, bool (*compare)(const v
 List getDescendants(const GEDCOMobject* familyRecord, const Individual* person)
 {
   List descendants = initializeList(&printIndividual,&deleteIndividual,&compareIndividuals);
-  ListIterator iter = createIterator(familyRecord->families);
-  Family* elem;
-
+  if(familyRecord == NULL)
+  {
+    return descendants;
+  }
   if(person == NULL)
   {
-      return descendants;
+    return descendants;
   }
+  ListIterator iter = createIterator(familyRecord->families);
+  Family* elem;
 
 
   while( (elem = nextElement(&iter)) != NULL)
   {
-    if((strcmp(person->givenName,elem->husband->givenName)==0) || (strcmp(person->givenName,elem->wife->givenName)==0))
+    if(compareIndividuals(person,elem->husband)==0 || compareIndividuals(person,elem->wife)==0)
     {
-      if((strcmp(person->givenName,elem->husband->surname)==0) || (strcmp(person->givenName,elem->wife->surname)==0))
-      {
         ListIterator child = createIterator(elem->children);
         Individual* kid;
         while( (kid = nextElement(&child)) != NULL)
@@ -1063,26 +1182,27 @@ List getDescendants(const GEDCOMobject* familyRecord, const Individual* person)
           insertBack(&descendants,kid);
         }
         break;
-      }
     }
   }
 
 
-  ListIterator iter1 = createIterator(descendants);
-  ListIterator iter2 = createIterator(familyRecord->families);
-  Family* elemnt;
-
-  while( (elemnt = nextElement(&iter2)) != NULL)
+  ListIterator iter1 = createIterator(familyRecord->families);
+  ListIterator iter2 = createIterator(descendants);
+  Individual* grandkid;
+  while( (grandkid = nextElement(&iter2)) != NULL)
   {
-    Individual* grandkid;
-    while( (grandkid = nextElement(&iter1)) != NULL)
+    Family* elem1;
+    while( (elem1 = nextElement(&iter1)) != NULL)
     {
-      if((strcmp(grandkid->givenName,elemnt->husband->givenName)==0) || (strcmp(grandkid->givenName,elemnt->wife->givenName)==0))
+      if(compareIndividuals(grandkid,elem1->husband)==0 || compareIndividuals(grandkid,elem1->wife)==0)
       {
-        if((strcmp(grandkid->givenName,elemnt->husband->givenName)==0) || (strcmp(grandkid->givenName,elemnt->wife->givenName)==0))
-        {
-          insertBack(&descendants,grandkid);
-        }
+          ListIterator child1 = createIterator(elem1->children);
+          Individual* kid1;
+          while( (kid1 = nextElement(&child1)) != NULL)
+          {
+            insertBack(&descendants,kid1);
+          }
+          break;
       }
     }
   }
