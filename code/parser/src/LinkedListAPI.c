@@ -236,7 +236,7 @@ void insertSorted(List *list, void *toBeAdded){
 			char* currDescr = list->printData(currNode->data);
 			char* newDescr = list->printData(toBeAdded);
 
-			printf("Inserting %s before %s\n", newDescr, currDescr);
+			//printf("Inserting %s before %s\n", newDescr, currDescr);
 
 			free(currDescr);
 			free(newDescr);
@@ -316,7 +316,7 @@ int getLength(List list)
 	void* elem;
 
   if((elem = nextElement(&iter)) == NULL){
-    return -1;
+    return 0;
 	}
 
 	while( (elem = nextElement(&iter)) != NULL){

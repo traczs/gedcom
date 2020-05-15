@@ -16,6 +16,10 @@ char* printPoint(void* toBePrinted);
 bool compareIndividualsBool(const void* first,const void* second);
 void getDescendantListRecursion(const GEDCOMobject* familyRecord,List* generations, List people, unsigned int maxGen);
 void getAncestorListRecursion(const GEDCOMobject* familyRecord,List* generations, List people, unsigned int maxGen);
+char* createGEDCOMwrapper(char* filename);
+void simpleGEDwrapper(char* json, char* filename);
+void addIndiwrapper(char* json, char* filename);
+char* dbIndiWrapper(char* filename);
 
 //takes in a word and turns it to all capitals(for the gedcom tags)
 void upperCase(char** word)
@@ -303,7 +307,7 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
 
           bool isAddr = false;
           strcpy((*obj)->submitter->address ,wholeList[i][j+2]);
-          strcpy((*obj)->header->submitter->address ,wholeList[i][j+2]);
+          //strcpy((*obj)->header->submitter->address ,wholeList[i][j+2]);
 
           for(int i =1; i<listCount;i++)
           {
@@ -316,21 +320,33 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
                 if(strcmp(wholeList[i][1],"NAME")==0)
                 {
                   strcpy((*obj)->submitter->submitterName,wholeList[i][2]);
-                  strcpy((*obj)->header->submitter->submitterName,wholeList[i][2]);
+                  //strcpy((*obj)->header->submitter->submitterName,wholeList[i][2]);
                 }
                 else if(strcmp(wholeList[i][1],"ADDR")==0)
                 {
                   isAddr = true;
                   strcpy((*obj)->submitter->address,wholeList[i][2]);
-                  strcpy((*obj)->header->submitter->address,wholeList[i][2]);
+                  //strcpy((*obj)->header->submitter->address,wholeList[i][2]);
+                  int j =3;
+                  while(strcmp(wholeList[i][j],"")!= 0)
+                  {
+					  strcat((*obj)->submitter->address," ");
+					  //strcat((*obj)->header->submitter->address," ");
+					  strcat((*obj)->submitter->address,wholeList[i][j]);
+					  //strcat((*obj)->header->submitter->address,wholeList[i][j]);
+					  
+					  j++;
+				  }
                 }
                 else
                 {
-                  Field* field = malloc(sizeof(Field));
-                  field->tag = malloc(sizeof(char) * 10);
-                  field->value = malloc(sizeof(char) * 100);
-                  if((wholeList[i][1] != NULL)&& (strcmp(wholeList[i][1],"" )!=0))
-                    strcpy(field->tag, wholeList[i][1]);
+					Field* field = malloc(sizeof(Field));
+					field->tag = malloc(sizeof(char) * 10);
+					field->value = malloc(sizeof(char) * 100);
+					if((wholeList[i][1] != NULL)&& (strcmp(wholeList[i][1],"" )!=0))
+					{
+						strcpy(field->tag, wholeList[i][1]);
+					}
                     if((wholeList[i][2] != NULL)&& (strcmp(wholeList[i][2],"" )!=0))
                     {
                       strcpy(field->value, wholeList[i][2]);
@@ -341,13 +357,13 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
                         w++;
                       }
                     }
-                  insertBack(&((*obj)->submitter->otherFields),field);
-                  insertBack(&((*obj)->header->submitter->otherFields),field);
+					insertBack(&((*obj)->submitter->otherFields),field);
+					//insertBack(&((*obj)->header->submitter->otherFields),field);
 
                   //Field* temp = (Field*)(*obj)->header->submitter->otherFields.tail->data;
                   //printf("woo sus:%s \n",temp->tag);
                 }
-                //(*obj)->header->submitter = (*obj)->submitter;
+
                 i++;
               }
             }
@@ -355,8 +371,9 @@ GEDCOMerror createGEDCOM(char* fileName, GEDCOMobject** obj)
           if(isAddr ==false)
           {
             strcpy((*obj)->submitter->address ,"");
-            strcpy((*obj)->header->submitter->address ,"");
+            //strcpy((*obj)->header->submitter->address ,"");
           }
+          (*obj)->header->submitter = (*obj)->submitter;
         }
       }
       else
@@ -1420,13 +1437,21 @@ GEDCOMerror writeGEDCOM(char* fileName, const GEDCOMobject* obj)
     strcat(writeList[count],obj->header->submitter->submitterName);
     strcat(writeList[count],"\n");
     count++;
+    if(obj->header->submitter->address != NULL)
+    {
+		strcpy(writeList[count],"1 ADDR ");
+		strcat(writeList[count],obj->header->submitter->address);
+		strcat(writeList[count],"\n");
+		count++;
+	}
+    
   }
 
   List pointWrite= initializeList(&printPoint,&deletePoint,&comparePoints);
   ListIterator iter = createIterator(obj->individuals);
   Individual* temp = NULL;
   int individualCount = 1;
-  while( (temp = nextElement(&iter)) != NULL)
+  while((temp = nextElement(&iter)) != NULL)
   {
     Point* point = malloc(sizeof(Point));
     char integerStr[25];
@@ -1707,7 +1732,7 @@ ErrorCode validateGEDCOM(const GEDCOMobject* obj)
 {
   if(obj==NULL)
   {
-    return OTHER_ERROR;
+    return INV_GEDCOM;
   }
   else if(obj->header == NULL)
   {
@@ -1717,7 +1742,7 @@ ErrorCode validateGEDCOM(const GEDCOMobject* obj)
   {
     return INV_GEDCOM;
   }
-  else if(obj->header->source == NULL)
+  else if(obj->header->source == NULL || strcmp(obj->header->source,"")==0)
   {
     return INV_HEADER;
   }
@@ -1737,7 +1762,7 @@ ErrorCode validateGEDCOM(const GEDCOMobject* obj)
   {
     return INV_HEADER;
   }
-  else if(obj->submitter->submitterName == NULL)
+  else if(obj->submitter->submitterName == NULL || strcmp(obj->submitter->submitterName,"")==0)
   {
     return INV_RECORD;
   }
@@ -1783,6 +1808,7 @@ ErrorCode validateGEDCOM(const GEDCOMobject* obj)
           return INV_RECORD;
         }
       }
+      return OK;
     }
 
     ListIterator iter2 = createIterator(obj->individuals);
@@ -1900,10 +1926,10 @@ void getDescendantListRecursion(const GEDCOMobject* familyRecord,List* generatio
 {
   List* descendants = malloc(sizeof(List));
   *descendants = initializeList(&printIndividual,&deleteIndividual,&compareIndividuals);
-  /*if(maxGen<=0)
+  if(maxGen<=0)
   {
-    return NULL;
-  }*/
+    return;
+  }
   ListIterator iter = createIterator(familyRecord->families);
   Family* elem;
   int count =0;
@@ -1919,7 +1945,6 @@ void getDescendantListRecursion(const GEDCOMobject* familyRecord,List* generatio
          Individual* kid;
          while( (kid = nextElement(&child)) != NULL)
          {
-           //printf("%s%s has kid %s%s\n",elem2->givenName,elem2->surname,kid->givenName,kid->surname );
            count++;
            insertSorted(descendants,kid);
          }
@@ -1928,7 +1953,7 @@ void getDescendantListRecursion(const GEDCOMobject* familyRecord,List* generatio
   }
   if(count>0)
   {
-    insertFront(generations,descendants);
+    insertBack(generations,descendants);
     getDescendantListRecursion(familyRecord,generations,*descendants,maxGen-1);
   }
 
@@ -1970,6 +1995,7 @@ List getAncestorListN(const GEDCOMobject* familyRecord, const Individual* person
     }
   }
   getAncestorListRecursion(familyRecord,&generations,*descendants,maxGen);
+  printf("maxGen:%d, individual:%s JSON: %s\n\n", maxGen, person->givenName,gListToJSON(generations));
   return generations;
 }
 
@@ -1977,10 +2003,10 @@ void getAncestorListRecursion(const GEDCOMobject* familyRecord,List* generations
 {
   List* descendants = malloc(sizeof(List));
   *descendants = initializeList(&printIndividual,&deleteIndividual,&compareIndividuals);
-  /*if(maxGen<=0)
+  if(maxGen<=0)
   {
-    return NULL;
-  }*/
+    return;
+  }
   int count = 0;
   ListIterator iter = createIterator(familyRecord->families);
   Family* elem;
@@ -1997,9 +2023,33 @@ void getAncestorListRecursion(const GEDCOMobject* familyRecord,List* generations
         if(elem2== elem1)
         {
           //printf("%s%s has parents %s%s and %s%s\n",elem2->givenName,elem2->surname,elem->husband->givenName,elem->husband->surname,elem->wife->givenName,elem->wife->surname );
-            insertBack(descendants,elem->husband);
-            insertBack(descendants,elem->wife);
-            count++;
+            ListIterator desIter = createIterator(*descendants);
+			Individual* eleDes;
+			bool isHusb = false;
+			bool isWife = false;
+			while( (eleDes = nextElement(&desIter)) != NULL)
+			{
+				if(eleDes == elem->husband)
+				{
+					isHusb = true;
+				}
+				if(eleDes == elem->wife)
+				{
+					isWife = true;
+				}
+			}
+				
+			if(isHusb != true)
+			{
+				insertSorted(descendants,elem->husband);
+				count++;
+			}
+			if(isWife != true)
+			{
+				insertSorted(descendants,elem->wife);
+				count++;
+			}
+            
             break;
         }
       }
@@ -2007,7 +2057,7 @@ void getAncestorListRecursion(const GEDCOMobject* familyRecord,List* generations
   }
   if(count>0)
   {
-    insertFront(generations,descendants);
+    insertBack(generations,descendants);
     getAncestorListRecursion(familyRecord,generations,*descendants,maxGen-1);
   }
 
@@ -2128,7 +2178,7 @@ char* indToJSON(const Individual* ind)
 
 Individual* JSONtoInd(const char* str)
 {
-  if(str == NULL)
+  if(str == NULL || strcmp(str,"")==0)
   {
     return NULL;
   }
@@ -2137,6 +2187,8 @@ Individual* JSONtoInd(const char* str)
   indi->surname = malloc(sizeof(char) *  50);
   strcpy(indi->givenName,"");
   strcpy(indi->surname,"");
+  
+	
   char* st= malloc(sizeof(char) * 150);
   strcpy(st,str);
   char* string = strtok(st,"\"");
@@ -2221,6 +2273,7 @@ Individual* JSONtoInd(const char* str)
     }
   }
   free(st);
+  
   if(hasLN==false || hasFN==false)
   {
     return NULL;
@@ -2232,7 +2285,7 @@ Individual* JSONtoInd(const char* str)
 
 GEDCOMobject* JSONtoGEDCOM(const char* str)
 {
-  if(str ==NULL)
+  if(str == NULL || strcmp(str,"")==0)
   {
     return NULL;
   }
@@ -2247,6 +2300,10 @@ GEDCOMobject* JSONtoGEDCOM(const char* str)
   char token[50] = " ";
   int strPos =0;
   int tokPos = 0;
+  if(str[0] != '{')
+  {
+	  return NULL;
+  }
   while ((str[strPos] != '\0') && (strPos<strlen(str)))
   {
     token[tokPos] = str[strPos];
@@ -2536,6 +2593,7 @@ char* gListToJSON(List gList)
   char* longestString = malloc(sizeof(char)* 15000);
   if(gList.head == NULL)
   {
+	strcpy(longestString,"[]");
     return longestString;
   }
 
@@ -2553,4 +2611,130 @@ char* gListToJSON(List gList)
   }
   strcat(longestString,"]");
   return longestString;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////A3 Functions /////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+char* createGEDCOMwrapper(char* filename)
+{
+	char* string = malloc(sizeof(char)* 1000);
+	if(filename == NULL || strcmp(filename,"")==0)
+	{
+		strcpy(string,"");
+		return string;
+	}
+	char convertedString[25];
+	GEDCOMobject * obj = NULL;
+	createGEDCOM(filename, &obj);
+	strcpy(string,"{\"filename\":\"");
+	strcat(string,filename);
+	strcat(string,"\",\"source\":\"");
+	//printf("STRING %s\n",string);
+	if(obj->header->source)
+	{
+		strcat(string,obj->header->source);
+	}
+	strcat(string,"\",\"gedcversion\":\"");
+	sprintf(convertedString,"%.1f",obj->header->gedcVersion);
+	strcat(string,convertedString);
+	
+	strcat(string,"\",\"encoding\":\"");
+	if(obj->header->encoding == 0)
+	{
+	strcat(string,"ANSEL");
+	}
+	else if(obj->header->encoding == 1)
+	{
+	strcat(string,"UTF-8");
+	}
+	else if(obj->header->encoding == 2)
+	{
+	strcat(string,"UNICODE");
+	}
+	else if(obj->header->encoding == 3)
+	{
+	strcat(string,"ASCII");
+	}
+    strcat(string,"\",\"submitterName\":\"");
+    if(obj->header->submitter->submitterName != NULL)
+    {
+		strcat(string,obj->header->submitter->submitterName);
+	}
+	strcat(string,"\",\"submitterAddress\":\"");
+    if(obj->header->submitter->submitterName)
+    {
+		strcat(string,obj->header->submitter->address);
+	}
+	strcat(string,"\",\"numInd\":\"");
+	sprintf(convertedString,"%d",getLength(obj->individuals));
+	strcat(string,convertedString);
+	strcat(string,"\",\"numFam\":\"");
+	sprintf(convertedString,"%d",getLength(obj->families));
+	strcat(string,convertedString);
+	strcat(string,"\"}");
+	//printf("STRING %s\n",string);
+	deleteGEDCOM(obj);
+	return string;
+}
+
+
+void simpleGEDwrapper(char* json, char* filename)
+{
+	GEDCOMobject * obj = NULL;
+	obj = JSONtoGEDCOM(json);
+	//ErrorCode error = validateGEDCOM(obj);
+	//if(error == 0)
+	//{
+		writeGEDCOM(filename,obj);
+	//}
+	//else
+	//	printf("INVALID GEDCOM\n");
+}
+
+void addIndiwrapper(char* json, char* filename)
+{
+	printf("JSON:%s\nfilename %s\n",json,filename);
+	GEDCOMobject * obj = NULL;
+	createGEDCOM(filename,&obj);
+	//printf("step1\n");
+	addIndividual(obj,JSONtoInd(json));
+	//printf("step2\n");
+	writeGEDCOM(filename,obj);
+	//printf("step3\n");
+	deleteGEDCOM(obj);
+}
+
+char* dbIndiWrapper(char* filename)
+{
+	char* string = malloc(sizeof(char)* 10000);
+	if(filename == NULL || strcmp(filename,"")==0)
+	{
+		strcpy(string,"");
+		return string;
+	}
+	GEDCOMobject * obj = NULL;
+	createGEDCOM(filename, &obj);
+	
+	ListIterator iter = createIterator(obj->individuals);
+	Individual* temp = NULL;
+	strcpy(string,"[");
+	while((temp = nextElement(&iter)) != NULL)
+	{
+		//printf("%s %s\n",temp->givenName,temp->surname);
+		strcat(string,"{\"filename\":\"");
+		strcat(string,filename);
+		strcat(string,"\",\"givenName\":\"");
+		strcat(string,temp->givenName);
+		strcat(string,"\",\"surname\":\"");
+		strcat(string,temp->surname);
+		strcat(string,"\"},");
+	}
+	if(strlen(string)>1)
+	{
+		string[strlen(string)-1] = '\0';
+	}
+	strcat(string,"]");
+	deleteGEDCOM(obj);
+	return string;
 }

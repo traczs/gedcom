@@ -1,8 +1,6 @@
 ***********************************************
 Samuel Tracz
-0927451
-CIS 2750 Assignment 1
-January 29, 2018
+CIS 2750 Assignment
 **********************************************
 
 *************************
@@ -13,13 +11,13 @@ make all
 *******************************
 running the program
 *****************************
-./a.out filename ? 
-I dont know what your main is.
+node code/app.js
+
+needs to be connected to db
 
 ***************************
 Notes
 ***************************
-
 CODE KNOWN ISSUES:
 -Families gets pointed to the last family created and overwrites all the previous ones to the last one.
  I had the same problem with individuals.

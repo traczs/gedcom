@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Genealogy App</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Genealogy App that works with GEDCOM files">
+    <meta name="keywords" content="GEDCOM Ancestry Family Tree">
+    <meta name="author" content="Samuel Tracz">
+    <!-- Load jquery, bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <!-- Custom CSS End -->
+</head>
+<body>
+	<div id="popup" class="modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+	  <div class="modal-dialog" role="document">
+		<div class="modal-content">
+		  <div class="modal-header">
+			<h5 class="modal-title">Database Connection</h5>
+		  </div>
+		  <div class="modal-body">
+			  <div>
+			  <label for="uname"><b>Username</b></label>
+			  <input type="text" placeholder="Enter Username" id="uname" required>
+			  </div>
+			  <div>
+			  <label for="psw"><b>Password</b></label>
+			  <input type="password" placeholder="Enter Password" id="psw" required>
+			  </div>
+			  <div>
+			  <label for="psw"><b>Database Name</b></label>
+			  <input type="text" placeholder="Enter name" id="db" required>
+			  </div>
+		  </div>
+		  <div class="modal-footer">
+			  <label id="errormsg"></label>
+			<button id="dblogin" type="button" class="btn btn-primary btn-lg">Login</button>
+		  </div>
+		</div>
+	  </div>
+	</div>
+	
+	<div class= "card card-default" >
+		<div class="card-heading">Status</div>
+		<label id="status_a" class="card-body" style="overflow-y:scroll;overflow-x:scroll;height:100px;width:1100px">
+		</label>
+		<button type="button" id="clearStatus" class="btn btn-primary">Clear</button>
+	</div>
+	<hr>
+		<button type="button" class="btn btn-primary btn-lg" id="upload_btn">Upload File</button>
+		<form id="form_upload" action="/upload" method="post" encType="multipart/form-data">
+			<input type="file" id="upload" name="uploadFile" value="">
+			<button type="submit" class="btn btn-success" id="upload_btn_sub">Upload</button>
+			<hr>
+		</form>
+		
+		<button type="button" class="btn btn-primary btn-lg" id="crt_ged_btn">Create Simple GEDCOM</button>
+		<form id= "create_gedcom"  name="create-gedcom" class="border">
+		  <div class="form-group">
+			<label>File Name</label>
+			<input type="text" class="form-control" id="filename-form" placeholder="File Name" >
+		  </div>
+		  <div class="form-group">
+			<label>Source</label>
+			<input type="text" class="form-control" id="source-form" placeholder="source" value="PAF" >
+		  </div>
+		  <div class="form-group">
+			<label>GEDCOM Version</label>
+			<input type="text" class="form-control" id="version" placeholder="version number" value="5.5" >
+		  </div>
+			<div class="form-group">
+				<div class="input-group mb-3">
+				  <div class="input-group-prepend">
+					<label class="input-group-text">Encoding</label>
+				  </div>
+				  <select class="custom-select" id="encodingSelect">
+					  <option value="ASCII">ASCII</option>
+					  <option value="UTF8">UTF-8</option>
+					  <option value="ANSEL">ANSEL</option>
+					  <option value="UNICODE">UNICODE</option>
+				  </select>
+				</div>
+			</div>
+			<div class="form-group">
+				<label>Submitter Name</label>
+				<input type="text" class="form-control" id="submitter-name" placeholder="Name (required)" >
+			</div>
+			<div class="form-group">
+				<label>Submitter Address</label>
+				<input type="text" class="form-control" id="submitter-address" placeholder="Address (optional)">
+			</div>
+		  <button type="submit" class="btn btn-success" id="createGedSubmit">Create GEDCOM</button>
+		  <hr>
+		</form>
+
+		<button type="button" class="btn btn-primary btn-lg" id="crt_indi_btn">Add an Individual</button>
+		<form id= "create_indi"  name="create-indi">
+			<p></p>
+			<div class="form-group">
+				<div class="input-group mb-3">
+				  <div class="input-group-prepend">
+					<label class="input-group-text">File</label>
+				  </div>
+				  <select class="custom-select" id="mySelect1">
+				  </select>
+				</div>
+			</div>
+			<div class="form-group">
+				<label>First Name</label>
+				<input type="text" class="form-control" id="indi_givenname" placeholder="John">
+			</div>
+			<div class="form-group">
+				<label>Last Name</label>
+				<input type="text" class="form-control" id="indi_surname" placeholder="Doe">
+			</div>
+			<button type="submit" class="btn btn-success" id="createIndiSubmit">Add Individual</button>
+			<hr>
+		</form>
+		
+		
+		<button type="button" class="btn btn-primary btn-lg" id="get_des_btn">Find Descendants</button>
+		<form id= "get_des">
+			<p></p>
+			<div class="form-group">
+				<div class="input-group mb-3">
+				  <div class="input-group-prepend">
+					<label class="input-group-text">File</label>
+				  </div>
+				  <select class="custom-select" id="mySelect2">
+				  </select>
+				</div>
+			</div>
+			<div class="form-group">
+				<label>First Name</label>
+				<input type="text" class="form-control" id="des_givenname" placeholder="John">
+			</div>
+			<div class="form-group">
+				<label>Last Name</label>
+				<input type="text" class="form-control" id="des_surname" placeholder="Doe">
+			</div>
+			<button type="submit" class="btn btn-success" id="getDesSubmit">Get Descendants</button>
+			<p></p>
+			<div style="overflow-y:scroll;overflow-x:scroll;height:300px;width:1100px" id="desTableDiv">
+				<table class="table table-striped" id="desTable" >
+				  <thead>
+					<tr>
+					  <th scope="col">Generation</th>
+					  <th scope="col">Descendants</th>
+					</tr>
+				  </thead>
+					  <tbody id="desTableBody">
+						<tr>
+						  <th scope="row">1</th>
+						  <td>someone, william shakespeare</td>
+						</tr>
+						<tr>
+						  <th scope="row">2</th>
+						  <td>Jacob Johnson, anne hAthaway, spaghett , spongebob aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</td>
+						</tr>
+					  </tbody>
+				</table>
+			</div>
+			<hr>
+		</form>
+		
+		<button type="button" class="btn btn-primary btn-lg" id="get_anc_btn">Find Ancestors</button>
+		<form id= "get_anc">
+			<p></p>
+			<div class="form-group">
+				<div class="input-group mb-3">
+				  <div class="input-group-prepend">
+					<label class="input-group-text">File</label>
+				  </div>
+				  <select class="custom-select" id="mySelect3">
+				  </select>
+				</div>
+			</div>
+			<div class="form-group">
+				<label>First Name</label>
+				<input type="text" class="form-control" id="anc_givenname" placeholder="John">
+			</div>
+			<div class="form-group">
+				<label>Last Name</label>
+				<input type="text" class="form-control" id="anc_surname" placeholder="Doe">
+			</div>
+			<button type="submit" class="btn btn-success" id="getAncSubmit">Get Ancestors</button>
+			<p></p>
+			<div style="overflow-y:scroll;overflow-x:scroll;height:300px;width:1100px" id="ancTableDiv">
+				<table class="table table-striped" id="ancTable" >
+				  <thead>
+					<tr>
+					  <th scope="col">Generation</th>
+					  <th scope="col">Descendants</th>
+					</tr>
+				  </thead>
+					  <tbody id="ancTableBody">
+						<tr>
+						  <th scope="row">1</th>
+						  <td> william shakespeare</td>
+						</tr>
+						<tr>
+						  <th scope="row">2</th>
+						  <td>Jacob Johnson, anne hAthaway, spaghetti man , spongebob </td>
+						</tr>
+					  </tbody>
+				</table>
+			</div>
+			<hr>
+		</form>
+		
+	<hr>
+	<div class= "file-log">
+		File Log
+		<div style="overflow-y:scroll;overflow-x:scroll;height:300px;width:1100px">
+		<table class="table table-bordered table-hover" id="fileLogTable">
+		  <thead class="thead-dark">
+			<tr>
+			  <th scope="col">File Name (click to download)</th>
+			  <th scope="col">Source</th>
+			  <th scope="col">GEDC version</th>
+			  <th scope="col">Encoding</th>
+			  <th scope="col">Submitter Name</th>
+			  <th scope="col">Submitter Address</th>
+			  <th scope="col">Number of individuals</th>
+			  <th scope="col">Number of families</th>
+			</tr>
+		  </thead>
+		  <tbody>
+		  </tbody>
+		</table>
+		</div>
+	</div>
+	<hr>
+	<div class= "gedcom-view">
+		GEDCOM View
+		<div class="input-group mb-3">
+		  <div class="input-group-prepend">
+			<label class="input-group-text">File</label>
+		  </div>
+		  <select class="custom-select" id="mySelect4">
+			
+		  </select>
+		</div>
+		<div style="overflow-y:scroll;overflow-x:scroll;height:300px;width:1100px">
+		<table class="table table-bordered">
+		  <thead class="thead-dark">
+			<tr>
+			  <th scope="col">Given Name</th>
+			  <th scope="col">Surname</th>
+			  <th scope="col">Sex</th>
+			  <th scope="col">Family Size</th>
+			</tr>
+		  </thead>
+		  <tbody>
+			<tr>
+			  
+			  <td>William</td>
+			  <td>Shakespeare</td>
+			  <td>M</td>
+			  <td>21335431</td>
+			</tr>
+			<tr>
+			  <th scope="row"></th>
+			  <td>Please</td>
+			  <td>Pass</td>
+			  <td>Me</td>
+			</tr>
+			
+		  </tbody>
+		</table>
+		</div>
+	</div>
+	<hr>
+	<hr>
+	<h1>A4 Functionality</h1>
+	<div>
+		<button type="button" class="btn btn-primary btn-lg" id="storefiles_btn" disabled>Store All Files</button>
+		<button type="button" class="btn btn-primary btn-lg" id="cleardata_btn" disabled>Clear All Data</button>
+		<button type="button" class="btn btn-primary btn-lg" id="dbstatus_btn" disabled>Display DB Status</button>
+	</div>
+	<div>
+		<button type="button" class="btn btn-primary btn-lg" id="query_btn" disabled>Execute Query</button>
+		<div id= "query_form"  name="query-form" class="border">
+			<h3>CUSTOM QUERY</h3>
+			<div class="input-group mb-3">
+			  <div class="input-group-prepend">
+				<span class="input-group-text" id="inputGroup-sizing-default">SELECT</span>
+			  </div>
+			  <input type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" id="queryStatement" placeholder="* FROM FILE;">
+			  <button type="button" class="btn btn-success" id="querySearch">submit</button>
+			</div>
+		  <div class="form-group">
+			<h3>QUERY OPTIONS</h3>
+			  <form id="queryselect">
+				  <input type="radio" name="radio" id="query1" checked>Display all individuals sorted by last name<br>
+				  <input type="radio" name="radio" id="query2"> Display the individuals from file: <input type="text" id="query2input" placeholder="file name" /><br>
+				  <input type="radio" name="radio" id="query3"> What file is this individual from? <input type="text" id="query3input1" placeholder="FirstName" /><input type="text" id="query3input2" placeholder="surname" /><br>
+				  <input type="radio" name="radio" id="query4"> Find individual name that contains:<input type="text" id="query4input" placeholder="ex:'iam' will return William" /><br>
+				  <input type="radio" name="radio" id="query5"> list all individuals from the following submitter name: <input type="text" id="query5input" placeholder="webTreePrint" /><br>
+				  <button type="button" class="btn btn-success" id="querySubmit">SELECT AND SUBMIT</button>
+			  </form> 
+		    
+		  </div>
+		  <div>
+			<button type="button" class="btn btn-info" id="helpbtn">Help</button>
+			<div id ="helpdiv">
+				<label>FILE table</label>
+				<table class="table" id="filetab">
+				  <thead>
+					<tr>
+					  <th scope="col">Field</th>
+					  <th scope="col">Type</th>
+					  <th scope="col">Null</th>
+					  <th scope="col">Key</th>
+					  <th scope="col">Primary</th>
+					  <th scope="col">Extra</th>
+					</tr>
+				  </thead>
+				  <tbody>
+					
+				  </tbody>
+				</table>
+				<label>INDIVIDUAL table</label>
+				<table class="table" id="indtab">
+				  <thead>
+					<tr>
+					  <th scope="col">Field</th>
+					  <th scope="col">Type</th>
+					  <th scope="col">Null</th>
+					  <th scope="col">Key</th>
+					  <th scope="col">Primary</th>
+					  <th scope="col">Extra</th>
+					</tr>
+				  </thead>
+				  <tbody>
+					
+				  </tbody>
+				</table>
+			</div>
+		  </div>
+		  <hr>
+		  <div class= "card card-default" >
+			<div class="card-heading">Results</div>
+			<div style="overflow-y:scroll;overflow-x:scroll;height:300px;width:1100px">
+			<table class="table table-bordered table-hover" id="queryresult">
+			  
+			  <tbody>
+			  </tbody>
+			</table>
+			</div>
+			<button type="button" id="clearquery" class="btn btn-primary">Clear</button>
+		  </div>
+		</div>
+		
+		
+		
+	</div>
+	
+	
+    <!-- Leave me at the bottom of body -->
+    <script src="/index.js"></script>
+</body>
+</html>
